@@ -1,5 +1,4 @@
 import json
-from django.http import JsonResponse as DjangoJsonResponse
 from typing import Union, NamedTuple
 from abc import ABC, ABCMeta, abstractmethod
 
@@ -160,13 +159,6 @@ class CustomJSONDecoder(json.JSONDecoder):
                 return dct
             return decoder().object_hook(dct)
         return dct
-
-class JsonResponse(DjangoJsonResponse):
-    def __init__(self, data, encoder=CustomJSONEncoder, safe=True, json_dumps_params=None, **kwargs):
-        if json_dumps_params is None:
-            json_dumps_params = {}
-        json_dumps_params['cls'] = encoder
-        super().__init__(data, safe=safe, json_dumps_params=json_dumps_params, **kwargs)
 
 # Example
 
