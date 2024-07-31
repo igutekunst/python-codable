@@ -13,5 +13,5 @@ Codable is a Python module for encoding and decoding objects using customizable 
 
 To install Codable, use pip:
 ```bash
-    pip install codeable
+    pip install codeble
 ```
