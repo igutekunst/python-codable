@@ -139,29 +139,3 @@ class AutoDecodable(Decodable, metaclass=CodeableMeta):
 
 class AutoCodable(Codable, AutoEncodable, AutoDecodable):
     pass
-
-# Example
-
-class TestEncodableClass(Encodable, Decodable):
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-    def encode(self, container: EncodingContainer):
-        container.encode("name", self.name)
-        container.encode("value", self.value)
-
-    @classmethod
-    def decode(cls, container: DecodingContainer):
-        name = container.decode("name")
-        value = container.decode("value")
-        return cls(name, value)
-
-
-class TestAutoEncodableClass(AutoEncodable, AutoDecodable):
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-    def __str__(self):
-        return f"TestAutoEncodableClass ({self.name}: {self.value})"
