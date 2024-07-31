@@ -94,6 +94,9 @@ class Decodable(ABC, metaclass=CodeableMeta):
     def decode(cls, container: DecodingContainer):
         pass
 
+class Codable(Encodable, Decodable):
+    pass
+
 class AutoEncodable(Encodable, metaclass=CodeableMeta):
     def encode(self, container: EncodingContainer):
         for k, v in self.__dict__.items():
@@ -134,7 +137,8 @@ class AutoDecodable(Decodable, metaclass=CodeableMeta):
             if not k.startswith('_')
         )
 
-
+class AutoCodable(Codable, AutoEncodable, AutoDecodable):
+    pass
 
 # Example
 
