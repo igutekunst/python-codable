@@ -1,18 +1,24 @@
 import json
-from typing import Union, NamedTuple
+from typing import NamedTuple, Union, Any
 from abc import ABC, ABCMeta, abstractmethod
 
 class RegistryEntry(NamedTuple):
     cls: type
-    encoder: json.JSONEncoder
-    decoder: json.JSONDecoder
+    encoder: Any
+    decoder: Any
 
 class CustomTypeRegistry:
     def __init__(self):
         self._registry: dict[str, RegistryEntry] = {}
 
-    def register(self, cls, encoder, decoder):
-        self._registry[cls.__name__] = RegistryEntry(cls, encoder, decoder)
+    def register(self, cls, encoder=None, decoder=None):
+        if cls.__name__ in self._registry:
+            existing_entry = self._registry[cls.__name__]
+            new_encoder = encoder if encoder is not None else existing_entry.encoder
+            new_decoder = decoder if decoder is not None else existing_entry.decoder
+            self._registry[cls.__name__] = RegistryEntry(cls, new_encoder, new_decoder)
+        else:
+            self._registry[cls.__name__] = RegistryEntry(cls, encoder, decoder)
 
     def get_encoder(self, cls) -> Union[json.JSONEncoder, None]:
         entry = self._registry.get(cls.__name__)
@@ -61,11 +67,21 @@ def to_container(self) -> EncodingContainer:
 class CodeableMeta(ABCMeta):
     def __init__(cls, name, bases, dct):
         super().__init__(name, bases, dct)
-        if issubclass(cls, (globals().get('Encodable', object), globals().get('Decodable', object))) and cls not in (globals().get('Encodable', object), globals().get('Decodable', object)):
-            custom_type_registry.register(cls, globals().get('ToDictJSONEncoder'), globals().get('FromDictJSONDecoder'))
-        if issubclass(cls, globals().get('AutoEncodable', object)) and cls is not globals().get('AutoEncodable', object):
+        base_classes = {'Encodable', 'Decodable', 'AutoEncodable', 'AutoDecodable'}
+        if name in base_classes:
+            return
+        auto_encodable = globals().get('AutoEncodable', object)
+        auto_decodable = globals().get('AutoDecodable', object)
+        encodable = globals().get('Encodable', object)
+        decodable = globals().get('Decodable', object)
+        if issubclass(cls, encodable) and cls is not encodable:
+            custom_type_registry.register(cls, cls.encode)
+        if issubclass(cls, decodable) and cls is not decodable:
+            custom_type_registry.register(cls, cls.decode)
+
+        if issubclass(cls, auto_encodable) and cls is not auto_encodable:
             cls.to_container = to_container
-        if issubclass(cls, globals().get('AutoDecodable', object)) and cls is not globals().get('AutoDecodable', object):
+        if issubclass(cls, auto_decodable) and cls is not auto_decodable:
             cls.from_container = from_container
 
 class Encodable(ABC, metaclass=CodeableMeta):
@@ -118,47 +134,7 @@ class AutoDecodable(Decodable, metaclass=CodeableMeta):
             if not k.startswith('_')
         )
 
-class ToDictJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Encodable):
-            container = obj.to_container()
-            container.data["__type__"] = obj.__class__.__name__
-            return container.data
-        return super().default(obj)
 
-class FromDictJSONDecoder(json.JSONDecoder):
-    def __init__(self, *args, **kwargs):
-        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
-
-    def object_hook(self, dct):
-        if "__type__" in dct:
-            Class = custom_type_registry.get_class(dct["__type__"])
-            if Class:
-                container = DecodingContainer(dct)
-                return Class.from_container(container)
-        return dct
-
-class CustomJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Encodable):
-            encoder = ToDictJSONEncoder
-        else:
-            encoder = custom_type_registry.get_encoder(type(obj))
-        if encoder:
-            return encoder().default(obj)  # Use the default method of the encoder instance
-        return super().default(obj)
-
-class CustomJSONDecoder(json.JSONDecoder):
-    def __init__(self, *args, **kwargs):
-        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
-
-    def object_hook(self, dct):
-        if "__type__" in dct:
-            decoder = custom_type_registry.get_decoder(dct["__type__"])
-            if not decoder:
-                return dct
-            return decoder().object_hook(dct)
-        return dct
 
 # Example
 
@@ -185,10 +161,3 @@ class TestAutoEncodableClass(AutoEncodable, AutoDecodable):
 
     def __str__(self):
         return f"TestAutoEncodableClass ({self.name}: {self.value})"
-
-
-def loads(data, decoder=CustomJSONDecoder):
-    return json.loads(data, cls=decoder)
-
-def dumps(data, encoder=CustomJSONEncoder):
-    return json.dumps(data, cls=encoder)
