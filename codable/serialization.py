@@ -51,16 +51,18 @@ class EncodingContainer:
 
 class DecodingContainer:
     def __init__(self, data):
+        self.type_name = data.get('__type__')
         self.data = data
 
     def decode(self, key, default=None):
         value = self.data.get(key, default)
         if isinstance(value, dict):
-            cls_name = value.get('__class__')
+            cls_name = value.get('__type__')
             if cls_name:
                 cls = custom_type_registry.get_class(cls_name)
                 if cls:
-                    return cls.from_container(DecodingContainer(value))
+                    container = DecodingContainer(value)
+                    return cls.decode(container)
         return value
 
 class CodeableMeta(ABCMeta):
