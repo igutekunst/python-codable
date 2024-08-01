@@ -35,21 +35,25 @@ class CustomTypeRegistry:
 # Create a global registry instance
 custom_type_registry = CustomTypeRegistry()
 
-class EncodingContainer:
+class KeyedEncodingContainer:
     def __init__(self, type_name=None):
         self.data = {}
         self.type_name = type_name
 
     def encode(self, key, value):
         if isinstance(value, Encodable):
-            container = EncodingContainer(value.__class__.__name__)
+            container = KeyedEncodingContainer(value.__class__.__name__)
             value.encode(container)
             self.data[key] = container
-            self.type_name = value.__class__.__name__
+        elif isinstance(value, dict):
+            container = KeyedEncodingContainer("dict")
+            for k, v in value.items():
+                container.encode(k, v)
+            self.data[key] = container
         else:
             self.data[key] = value
 
-class DecodingContainer:
+class KeyedDecodingContainer:
     def __init__(self, data):
         self.type_name = data.get('__type__')
         self.data = data
@@ -61,8 +65,11 @@ class DecodingContainer:
             if cls_name:
                 cls = custom_type_registry.get_class(cls_name)
                 if cls:
-                    container = DecodingContainer(value)
+                    container = KeyedDecodingContainer(value)
                     return cls.decode(container)
+            elif self.type_name == "dict":
+                container = KeyedDecodingContainer(value)
+                return {k: container.decode(k) for k in value}
         return value
 
 class CodeableMeta(ABCMeta):
@@ -81,19 +88,19 @@ class CodeableMeta(ABCMeta):
 
 class Encodable(ABC, metaclass=CodeableMeta):
     @abstractmethod
-    def encode(self, container: EncodingContainer):
+    def encode(self, container: KeyedEncodingContainer):
         pass
 
 class Decodable(ABC, metaclass=CodeableMeta):
     @abstractmethod
-    def decode(cls, container: DecodingContainer):
+    def decode(cls, container: KeyedDecodingContainer):
         pass
 
 class Codable(Encodable, Decodable):
     pass
 
 class AutoEncodable(Encodable, metaclass=CodeableMeta):
-    def encode(self, container: EncodingContainer):
+    def encode(self, container: KeyedEncodingContainer):
         for k, v in self.__dict__.items():
             if not k.startswith('_'):
                 container.encode(k, v)
@@ -112,7 +119,7 @@ class AutoEncodable(Encodable, metaclass=CodeableMeta):
 
 class AutoDecodable(Decodable, metaclass=CodeableMeta):
     @classmethod
-    def decode(cls, container: DecodingContainer):
+    def decode(cls, container: KeyedDecodingContainer):
         instance = cls.__new__(cls)
         for key, value in container.data.items():
             if not key.startswith('_'):

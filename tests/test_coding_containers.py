@@ -9,8 +9,8 @@ from codable.formats.json import JSONCodec
 from codable.serialization import (
     Encodable,
     Decodable,
-    EncodingContainer,
-    DecodingContainer,
+    KeyedEncodingContainer,
+    KeyedDecodingContainer,
     AutoEncodable,
     AutoDecodable
 )
@@ -20,12 +20,12 @@ class EncodableClassForTesting(Encodable, Decodable):
         self.name = name
         self.value = value
 
-    def encode(self, container: EncodingContainer):
+    def encode(self, container: KeyedEncodingContainer):
         container.encode("name", self.name)
         container.encode("value", self.value)
 
     @classmethod
-    def decode(cls, container: DecodingContainer):
+    def decode(cls, container: KeyedDecodingContainer):
         name = container.decode("name")
         value = container.decode("value")
         return cls(name, value)
@@ -63,12 +63,12 @@ class AnotherTestEncodableClass(Encodable, Decodable):
         self.name = name
         self.value = value
     
-    def encode(self, container: EncodingContainer):
+    def encode(self, container: KeyedEncodingContainer):
         container.encode("name", self.name)
         container.encode("value", self.value)
 
     @classmethod
-    def decode(cls, container: DecodingContainer):
+    def decode(cls, container: KeyedDecodingContainer):
         name = container.decode("name")
         value = container.decode("value")
         return cls(name, value)
