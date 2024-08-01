@@ -1,22 +1,23 @@
 import json
+from codable.formats.json import JSONKeyedEncodingContainer, JSONSingleValueEncodingContainer, JSONUnkeyedEncodingContainer
 from codable.serialization import SingleValueEncodingContainer, custom_type_registry, Encodable, Decodable, KeyedDecodingContainer, KeyedEncodingContainer, UnkeyedEncodingContainer, UnkeyedDecodingContainer
 
 class JSONFooCodec:
     @staticmethod
     def encode(obj: Encodable) -> str:
         if isinstance(obj, Encodable):
-            container = KeyedEncodingContainer()
+            container = JSONKeyedEncodingContainer()
             obj.encode(container)
             container.encode("__type__", obj.__class__.__name__)
             def serialize_dict(container):
                 output = "{"
                 index = 0
                 for key, value in container.data.items():
-                    if isinstance(value, KeyedEncodingContainer):
+                    if isinstance(value, JSONKeyedEncodingContainer):
                             output += serialize_dict(value)
-                    elif isinstance(value, UnkeyedEncodingContainer):
+                    elif isinstance(value, JSONUnkeyedEncodingContainer):
                         output += serialize_list(value)
-                    elif isinstance(value, SingleValueEncodingContainer):
+                    elif isinstance(value, JSONSingleValueEncodingContainer):
                         if index > 0:
                             output += ', '
                         output += f'"{key}": {serialize_single_value(value.value)}'

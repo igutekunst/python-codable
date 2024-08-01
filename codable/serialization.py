@@ -35,120 +35,24 @@ class CustomTypeRegistry:
 # Create a global registry instance
 custom_type_registry = CustomTypeRegistry()
 
-class KeyedEncodingContainer:
-    def __init__(self, keypath=None):
-        self.data = {}
 
-        if keypath is None:
-            keypath = []
-        self.keypath = keypath
+class KeyedEncodingContainer(ABC):
+    pass
 
-    def encode(self, key, value):
-        new_keypath = self.keypath + [key]
-        if isinstance(value, Encodable):
-            container = KeyedEncodingContainer(keypath=new_keypath)
-            value.encode(container)
-            container.encode("__type__", value.__class__.__name__)
-        elif isinstance(value, dict):
-            container = KeyedEncodingContainer(keypath=new_keypath)
-            for k, v in value.items():
-                container.encode(k, v)
-        elif isinstance(value, list):
-            container = UnkeyedEncodingContainer(keypath=new_keypath)
-            for v in value:
-                container.encode(v)
+class KeyedDecodingContainer(ABC):
+    pass
 
-        else:
-            container = SingleValueEncodingContainer(value)
-        self.data[key] = container
+class UnkeyedEncodingContainer(ABC):
+    pass
 
-class KeyedDecodingContainer:
-    def __init__(self, data, keypath=None):
-        self.data = data
+class UnkeyedDecodingContainer(ABC):
+    pass
 
-        if keypath is None:
-            keypath = []
-        self.keypath = keypath
+class SingleValueEncodingContainer(ABC):
+    pass
 
-    def decode(self, key, default=None):
-        value = self.data.get(key, default)
-        if isinstance(value, dict):
-            cls_name = value.get('__type__')
-            if cls_name:
-                cls = custom_type_registry.get_class(cls_name)
-                if cls:
-                    container = KeyedDecodingContainer(value)
-                    return cls.decode(container) # decode_from
-            else:
-                container = KeyedDecodingContainer(value)
-                return {k: container.decode(k) for k in value}
-        return value
-
-class UnkeyedEncodingContainer:
-    def __init__(self, keypath=None):
-        self.data = []
-
-        if keypath is None:
-            keypath = []
-        self.keypath = keypath
-
-    def encode(self, value):
-        new_keypath = self.keypath + [len(self.data)]
-        if isinstance(value, Encodable):
-            container = KeyedEncodingContainer(keypath=new_keypath)
-            value.encode(container)
-        elif isinstance(value, list):
-            container = UnkeyedEncodingContainer(keypath=new_keypath)
-            for item in value:
-                container.encode(item)
-        else:
-            container = SingleValueEncodingContainer(value, keypath=new_keypath)
-        self.data.append(container)
-
-class UnkeyedDecodingContainer:
-    def __init__(self, data, keypath=None):
-        self.data = data
-
-        if keypath is None:
-            keypath = []
-        self.keypath = keypath
-
-
-    def decode(self, index, default=None):
-        value = self.data[index] if index < len(self.data) else default
-        if isinstance(value, dict):
-            cls_name = value.get('__type__')
-            if cls_name:
-                cls = custom_type_registry.get_class(cls_name)
-                if cls:
-                    container = KeyedDecodingContainer(value)
-                    value.pop('__type__')
-                    return cls.decode(container)
-            else:
-                container = KeyedDecodingContainer(value)
-                for k, v in value.items():
-                    container.decode(k, v)
-                return container
-        elif isinstance(value, list):
-            container = UnkeyedDecodingContainer(value)
-            return [container.decode(i) for i in range(len(value))]
-        return value
-
-class SingleValueEncodingContainer:
-    def __init__(self, value, keypath=None):
-        self.value= value
-
-        if keypath is None:
-            keypath = []
-        self.keypath = keypath
-
-class SingleValueDecodingContainer:
-    def __init__(self, value, keypath=None):
-        self.value = value
-
-        if keypath is None:
-            keypath = []
-        self.keypath = keypath
+class SingleValueDecodingContainer(ABC):
+    pass
 
 class CodeableMeta(ABCMeta):
     def __init__(cls, name, bases, dct):
