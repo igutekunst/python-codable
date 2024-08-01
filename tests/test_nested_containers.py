@@ -1,5 +1,5 @@
 import pytest
-from codable.serialization import KeyedEncodingContainer, KeyedDecodingContainer, Encodable, Decodable, AutoEncodable, AutoDecodable
+from codable.serialization import KeyedEncodingContainer, KeyedDecodingContainer, UnkeyedEncodingContainer, UnkeyedDecodingContainer, Encodable, Decodable, AutoEncodable, AutoDecodable
 from codable.formats.json import JSONCodec
 from tests.test_coding_containers import EncodableClassForTesting, AutoEncodableClassForTesting
 import json
@@ -79,6 +79,18 @@ def test_dict_deserialization():
     json_data = '{"name": "test", "data": {"key1": "value1", "key2": 123, "key3": {"nestedKey": "nestedValue"}}, "__type__": "AutoDictEncodableClass"}'
     decoded_obj = JSONCodec.decode(json_data)
     expected_obj = AutoDictEncodableClass(name="test", data={"key1": "value1", "key2": 123, "key3": {"nestedKey": "nestedValue"}})
+    assert decoded_obj == expected_obj
+
+def test_array_serialization():
+    obj = AutoDictEncodableClass(name="test", data=["value1", 123, {"nestedKey": "nestedValue"}])
+    encoded_obj = JSONCodec.encode(obj)
+    expected_json = '{"name": "test", "data": ["value1", 123, {"nestedKey": "nestedValue"}], "__type__": "AutoDictEncodableClass"}'
+    assert encoded_obj == expected_json
+
+def test_array_deserialization():
+    json_data = '{"name": "test", "data": ["value1", 123, {"nestedKey": "nestedValue"}], "__type__": "AutoDictEncodableClass"}'
+    decoded_obj = JSONCodec.decode(json_data)
+    expected_obj = AutoDictEncodableClass(name="test", data=["value1", 123, {"nestedKey": "nestedValue"}])
     assert decoded_obj == expected_obj
 
 
