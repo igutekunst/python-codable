@@ -7,7 +7,7 @@ Codable is a Python module for encoding and decoding objects using customizable 
 - **Customizable Serialization**: Define your own encoders and decoders to handle specific object types.
 - **Automatic Encoding/Decoding**: Use the built-in `AutoEncodable` and `AutoDecodable` classes to automatically handle common serialization tasks.
 - **Helpful Decorators**: Use decorators to quickly make classes Codable.
-- **Integration with Django**: Includes a custom `JsonResponse` class that integrates with Django's HTTP response system.
+
 
 ## Installation
 
@@ -71,5 +71,8 @@ print(f"Decoded Employee: {decoded_employee}")
 ```
 
 
-
+## Future Features
+ - **Integration with Django**: Includes a custom `JsonResponse` class that integrates with Django's HTTP response system.
+ - **Other Formats**: Serialize into many other one the wire formats
+ - **Schemas**: DJango ORM Inpsired Schemas
 
