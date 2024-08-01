@@ -6,9 +6,19 @@ class JSONCodec:
     @staticmethod
     def encode(obj: Encodable) -> str:
         if isinstance(obj, Encodable):
-            container = EncodingContainer()
+            container = EncodingContainer(obj.__class__.__name__)
             obj.encode(container)
-            container.data["__type__"] = obj.__class__.__name__
+            def get_dict(container):
+                result = {}
+                for key, value in container.data.items():
+                    if isinstance(value, EncodingContainer):
+                        result[key] = get_dict(value)
+                    else:
+                        result[key] = value
+                result["__type__"] = container.type_name
+                return result
+
+            container.data = get_dict(container)
             return json.dumps(container.data)
         raise TypeError(f"Object of type {obj.__class__.__name__} is not Encodable")
 

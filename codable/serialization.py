@@ -36,33 +36,32 @@ class CustomTypeRegistry:
 custom_type_registry = CustomTypeRegistry()
 
 class EncodingContainer:
-    def __init__(self):
+    def __init__(self, type_name=None):
         self.data = {}
+        self.type_name = type_name
 
     def encode(self, key, value):
-        self.data[key] = value
+        if isinstance(value, Encodable):
+            container = EncodingContainer(value.__class__.__name__)
+            value.encode(container)
+            self.data[key] = container
+            self.type_name = value.__class__.__name__
+        else:
+            self.data[key] = value
 
 class DecodingContainer:
     def __init__(self, data):
         self.data = data
 
     def decode(self, key, default=None):
-        return self.data.get(key, default)
-
-@classmethod
-def from_container(cls, container: DecodingContainer):
-    instance = cls.__new__(cls)
-    for key, value in container.data.items():
-        if not key.startswith('_'):
-            setattr(instance, key, value)
-    return instance
-
-def to_container(self) -> EncodingContainer:
-    container = EncodingContainer()
-    for k, v in self.__dict__.items():
-        if not k.startswith('_'):
-            container.encode(k, v)
-    return container
+        value = self.data.get(key, default)
+        if isinstance(value, dict):
+            cls_name = value.get('__class__')
+            if cls_name:
+                cls = custom_type_registry.get_class(cls_name)
+                if cls:
+                    return cls.from_container(DecodingContainer(value))
+        return value
 
 class CodeableMeta(ABCMeta):
     def __init__(cls, name, bases, dct):
@@ -70,8 +69,6 @@ class CodeableMeta(ABCMeta):
         base_classes = {'Encodable', 'Decodable', 'AutoEncodable', 'AutoDecodable'}
         if name in base_classes:
             return
-        auto_encodable = globals().get('AutoEncodable', object)
-        auto_decodable = globals().get('AutoDecodable', object)
         encodable = globals().get('Encodable', object)
         decodable = globals().get('Decodable', object)
         if issubclass(cls, encodable) and cls is not encodable:
@@ -79,10 +76,6 @@ class CodeableMeta(ABCMeta):
         if issubclass(cls, decodable) and cls is not decodable:
             custom_type_registry.register(cls, cls.decode)
 
-        if issubclass(cls, auto_encodable) and cls is not auto_encodable:
-            cls.to_container = to_container
-        if issubclass(cls, auto_decodable) and cls is not auto_decodable:
-            cls.from_container = from_container
 
 class Encodable(ABC, metaclass=CodeableMeta):
     @abstractmethod
@@ -114,7 +107,6 @@ class AutoEncodable(Encodable, metaclass=CodeableMeta):
             for k in self.__dict__.keys()
             if not k.startswith('_')
         )
-    
 
 class AutoDecodable(Decodable, metaclass=CodeableMeta):
     @classmethod
