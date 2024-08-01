@@ -7,6 +7,7 @@ class AutoEncodableClassForTesting(AutoEncodable, AutoDecodable):
     def __init__(self, name, value):
         self.name = name
         self.value = value
+        self.l = ['one', 'two', 'three']
 
     def __str__(self):
         return f"AutoEncodableClassForTesting ({self.name}: {self.value})"
@@ -23,7 +24,7 @@ class AutoEncodableClassForTesting(AutoEncodable, AutoDecodable):
 def test_encodable_serialization():
     obj = AutoEncodableClassForTesting(name="test", value=123)
     encoded_obj = JSONFooCodec.encode(obj)
-    expected_json = '{"name": "test", "value": 123, "__type__": "AutoEncodableClassForTesting"}'
+    expected_json = '{"name": "test", "value": 123, "l": ["one", "two", "three"], "__type__": "AutoEncodableClassForTesting"}'
     assert encoded_obj == expected_json
 
 

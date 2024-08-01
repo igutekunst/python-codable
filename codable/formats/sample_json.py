@@ -13,14 +13,15 @@ class JSONFooCodec:
                 output = "{"
                 index = 0
                 for key, value in container.data.items():
+                    if index > 0:
+                        output += ', '
+                    output += f'"{key}": '
                     if isinstance(value, JSONKeyedEncodingContainer):
                             output += serialize_dict(value)
                     elif isinstance(value, JSONUnkeyedEncodingContainer):
                         output += serialize_list(value)
                     elif isinstance(value, JSONSingleValueEncodingContainer):
-                        if index > 0:
-                            output += ', '
-                        output += f'"{key}": {serialize_single_value(value.value)}'
+                        output += f'{serialize_single_value(value.value)}'
                     else:
                         raise Exception(f"type {type(value)} should not get here.")
                     index += 1

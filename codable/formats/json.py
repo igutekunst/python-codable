@@ -35,7 +35,7 @@ class JSONKeyedEncodingContainer(KeyedEncodingContainer):
                 container.encode(v)
 
         else:
-            container = JSONSingleValueEncodingContainer(value)
+            container = JSONSingleValueEncodingContainer(value, keypath=new_keypath)
         self.data[key] = container
 
 class JSONKeyedDecodingContainer(KeyedDecodingContainer):
